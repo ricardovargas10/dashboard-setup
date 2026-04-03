@@ -111,10 +111,10 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .top-post-img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--surface2)}
 .top-post-ph{width:100%;aspect-ratio:4/5;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;font-weight:600;flex-direction:column;gap:6px;text-align:center;padding:1rem}
 .top-post-ph-icon{font-size:22px;opacity:.35}
-.top-post-body{padding:12px 14px}
-.top-post-rank{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--orange);margin-bottom:6px}
-.top-post-desc{font-size:13px;color:var(--dimmed);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
-.top-post-stats{display:flex;gap:8px;font-size:13px;font-weight:700;color:var(--beige)}
+.top-post-body{padding:14px 16px}
+.top-post-rank{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--orange);margin-bottom:5px}
+.top-post-desc{font-size:14px;color:var(--dimmed);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:10px}
+.top-post-stats{display:flex;gap:10px;font-size:14px;font-weight:700;color:var(--beige)}
 .top-post-stats span{color:var(--muted);font-weight:500}
 .posts-group{border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem}
 .posts-group-top{background:rgba(132,209,235,0.04);border:1px solid rgba(132,209,235,0.1)}
@@ -123,7 +123,7 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .posts-group-title{font-size:16px;font-weight:800;letter-spacing:-.02em}
 .posts-group-title-top{color:var(--blue)}
 .posts-group-title-worst{color:var(--muted)}
-.top-post-dateline{font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.top-post-dateline{font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600}
 .acct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
 .acct-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
 .acct-label{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:6px;font-weight:700}
@@ -203,10 +203,18 @@ const MO=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto'
 const WEEKDAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 function parsePostDate(s){
   if(!s)return null;
-  const[datePart,timePart]=(s+' ').split(' ');
-  const p=datePart.split('/');
+  const parts=s.trim().split(' ');
+  const p=(parts[0]||'').split('/');
   if(p.length<3)return null;
-  return{date:new Date(parseInt(p[2]),parseInt(p[0])-1,parseInt(p[1])),time:timePart||''};
+  // Meta exports in UTC — convert to BRT (UTC-3)
+  const rawTime=parts[1]||'00:00';
+  const[hStr,mStr]=(rawTime+':00').split(':');
+  let h=parseInt(hStr,10),m=parseInt(mStr,10);
+  const dateUTC=new Date(Date.UTC(parseInt(p[2]),parseInt(p[0])-1,parseInt(p[1]),h,m));
+  const dateBRT=new Date(dateUTC.getTime()-3*60*60*1000);
+  const hBRT=String(dateBRT.getUTCHours()).padStart(2,'0');
+  const mBRT=String(dateBRT.getUTCMinutes()).padStart(2,'0');
+  return{date:dateBRT,time:`${hBRT}:${mBRT}`};
 }
 function postDateLine(s){
   const r=parsePostDate(s);
