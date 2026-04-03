@@ -123,6 +123,14 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .posts-group-title{font-size:16px;font-weight:800;letter-spacing:-.02em}
 .posts-group-title-top{color:var(--blue)}
 .posts-group-title-worst{color:var(--muted)}
+.top-post-dateline{font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.acct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
+.acct-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.acct-label{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:6px;font-weight:700}
+.acct-val{font-size:22px;font-weight:800;color:var(--beige);letter-spacing:-.03em;line-height:1}
+.acct-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.acct-pos{color:#34d399}.acct-neg{color:#f05924}
+.acct-empty{background:var(--surface2);border:1px dashed rgba(255,255,255,.1);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem;text-align:center;font-size:12px;color:var(--muted)}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{text-align:left;padding:8px 12px;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap}
 td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--beige);vertical-align:middle}
@@ -192,6 +200,20 @@ code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-siz
 </div>
 <script>
 const MO=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const WEEKDAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+function parsePostDate(s){
+  if(!s)return null;
+  const[datePart,timePart]=(s+' ').split(' ');
+  const p=datePart.split('/');
+  if(p.length<3)return null;
+  return{date:new Date(parseInt(p[2]),parseInt(p[0])-1,parseInt(p[1])),time:timePart||''};
+}
+function postDateLine(s){
+  const r=parsePostDate(s);
+  if(!r)return'';
+  const{date,time}=r;
+  return`${WEEKDAYS[date.getDay()]} · ${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')} · ${time}`;
+}
 const MS=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const fmt=n=>(isNaN(n)||n==null)?'—':Number(n).toLocaleString('pt-BR');
 function fmtD(s){if(!s)return'—';const p=s.split(' ')[0].split('/');return p.length<3?s:`${p[1].padStart(2,'0')}/${p[0].padStart(2,'0')}/${p[2].slice(-2)}`}
@@ -234,6 +256,7 @@ function topPostsHtml(top3,label='do mês'){
       ${imgBlock(code)}
       <div class="top-post-body">
         <div class="top-post-rank">${['1º','2º','3º'][i]} ${label} · ${fmt(v)} views</div>
+        <div class="top-post-dateline">${postDateLine(p['Horário de publicação'])}</div>
         <div class="top-post-desc">${desc}</div>
         <div class="top-post-stats">${fmt(l)} <span>curtidas</span> &nbsp; ${ePill(eng)}</div>
       </div></a>`;
@@ -252,6 +275,7 @@ function worstPostsHtml(posts3){
       ${imgBlock(code)}
       <div class="top-post-body">
         <div class="top-post-rank" style="color:var(--muted)">${['1º','2º','3º'][i]} menor · ${fmt(v)} views</div>
+        <div class="top-post-dateline">${postDateLine(p['Horário de publicação'])}</div>
         <div class="top-post-desc">${desc}</div>
         <div class="top-post-stats">${fmt(l)} <span>curtidas</span> &nbsp; ${ePill(eng)}</div>
       </div></a>`;
@@ -277,7 +301,61 @@ function tableHtml(sorted,best){
   }).join('');
 }
 
-function buildMonth(mi,posts,key,year,multiYear){
+function renderAccountData(acct){
+  if(!acct) return`<div class="acct-empty">📋 Dados de conta não encontrados para este mês.<br>Crie o arquivo <code>data/YYYY-MM-conta.csv</code> para exibir seguidores, conversas e mais.</div>`;
+  const g=v=>acct[v]!=null&&acct[v]!==''?acct[v]:'—';
+  const n=k=>parseFloat(acct[k])||0;
+  const totalSeg=n('Total seguidores');
+  const ganhos=n('Seguidores ganhos');
+  const perdas=n('Deixaram de seguir');
+  const saldo=ganhos-perdas;
+  return`
+  <div style="margin-bottom:.75rem" class="acct-section-title" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)">Público e conta</div>
+  <div class="acct-grid">
+    <div class="acct-card">
+      <div class="acct-label">Total seguidores</div>
+      <div class="acct-val">${fmt(totalSeg)||'—'}</div>
+      <div class="acct-sub">ao final do mês</div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">Seguidores ganhos</div>
+      <div class="acct-val acct-pos">+${fmt(ganhos)||'—'}</div>
+      <div class="acct-sub">novos no mês</div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">Deixaram de seguir</div>
+      <div class="acct-val acct-neg">-${fmt(perdas)||'—'}</div>
+      <div class="acct-sub">saídas no mês</div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">Saldo do mês</div>
+      <div class="acct-val ${saldo>=0?'acct-pos':'acct-neg'}">${saldo>=0?'+':''}${fmt(saldo)||'—'}</div>
+      <div class="acct-sub">ganhos - perdas</div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">Conversas iniciadas</div>
+      <div class="acct-val">${g('Conversas')}</div>
+      <div class="acct-sub">mensagens recebidas</div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">Novos contatos</div>
+      <div class="acct-val">${g('Novos contatos')}</div>
+      <div class="acct-sub">via direct</div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">Taxa de resposta</div>
+      <div class="acct-val">${g('Taxa de resposta')}${acct['Taxa de resposta']?'%':''}</div>
+      <div class="acct-sub">mensagens respondidas</div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">Conversões</div>
+      <div class="acct-val">${g('Conversões')}</div>
+      <div class="acct-sub">pedidos criados</div>
+    </div>
+  </div>`;
+}
+
+function buildMonth(mi,posts,key,year,multiYear,acct=null){
   const sorted=[...posts].sort((a,b)=>new Date(b['Horário de publicação']||0)-new Date(a['Horário de publicação']||0));
   const chrono=[...posts].sort((a,b)=>new Date(a['Horário de publicação']||0)-new Date(b['Horário de publicação']||0));
   const top3=[...posts].sort((a,b)=>(parseInt(b['Visualizações'],10)||0)-(parseInt(a['Visualizações'],10)||0)).slice(0,3);
@@ -318,6 +396,7 @@ function buildMonth(mi,posts,key,year,multiYear){
       <div class="kpi" style="--kpi-line:#84d1eb"><div class="kpi-label">Comentários</div><div class="kpi-val">${fmt(comments)}</div><div class="kpi-sub">interações</div></div>
       <div class="kpi" style="--kpi-line:#fcf6ec"><div class="kpi-label">Salvamentos</div><div class="kpi-val">${fmt(saves)}</div><div class="kpi-sub">saves</div></div>
     </div>
+    ${renderAccountData(acct)}
     <div class="posts-group posts-group-top">
       <div class="posts-group-header">
         <div class="posts-group-title posts-group-title-top">Top 3 posts do mês</div>
@@ -481,6 +560,19 @@ function showView(vid){
     document.getElementById('app-loading').innerHTML=`<div class="empty-wrap"><div class="et">Nenhum dado encontrado</div><p>Suba os arquivos CSV na pasta <code>data/</code> com o formato <code>${thisYear}-03.csv</code></p></div>`;
     return;
   }
+  // Also fetch account data for each month (optional CSV)
+  const acctFetches=results.map(m=>
+    fetch(`data/${m.key}-conta.csv`).then(r=>r.ok?r.text():null).catch(()=>null)
+      .then(text=>{
+        if(!text)return{key:m.key,acct:null};
+        const parsed=Papa.parse(text,{header:true,skipEmptyLines:true});
+        return{key:m.key,acct:parsed.data[0]||null};
+      })
+  );
+  const acctResults=await Promise.all(acctFetches);
+  const acctMap={};
+  acctResults.forEach(r=>acctMap[r.key]=r.acct);
+
   allMonths=results;
   const years=[...new Set(results.map(m=>m.year))].sort();
   const multiYear=years.length>1;
@@ -503,10 +595,10 @@ function showView(vid){
     btn.onclick=()=>showView(`view-annual-${y}`);
     document.querySelector('.sidebar').insertBefore(btn,document.getElementById('btn-annual'));
   });
-  document.getElementById('btn-annual').style.display='none'; // hide old button
+  document.getElementById('btn-annual').style.display='none';
   // Build views
   let html='';
-  results.forEach(m=>{const b=buildMonth(m.mi,m.posts,m.key,m.year,multiYear);html+=b.html;chronoMap[m.key]=b.chrono;});
+  results.forEach(m=>{const b=buildMonth(m.mi,m.posts,m.key,m.year,multiYear,acctMap[m.key]||null);html+=b.html;chronoMap[m.key]=b.chrono;});
   // Build one annual view per year
   const byYear={};
   results.forEach(m=>{if(!byYear[m.year])byYear[m.year]=[];byYear[m.year].push(m);});
@@ -514,7 +606,6 @@ function showView(vid){
   document.getElementById('mainContent').innerHTML=html;
   document.getElementById('app-loading').style.display='none';
   document.getElementById('app').style.display='block';
-  // Default: most recent annual view
   showView(`view-annual-${years[years.length-1]}`);
 })();
 </script>
