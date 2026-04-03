@@ -116,7 +116,13 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .top-post-desc{font-size:13px;color:var(--dimmed);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
 .top-post-stats{display:flex;gap:8px;font-size:13px;font-weight:700;color:var(--beige)}
 .top-post-stats span{color:var(--muted);font-weight:500}
-.table-wrap{overflow-x:auto}
+.posts-group{border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem}
+.posts-group-top{background:rgba(132,209,235,0.04);border:1px solid rgba(132,209,235,0.1)}
+.posts-group-worst{background:rgba(240,89,36,0.04);border:1px solid rgba(240,89,36,0.1)}
+.posts-group-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.posts-group-title{font-size:16px;font-weight:800;letter-spacing:-.02em}
+.posts-group-title-top{color:var(--blue)}
+.posts-group-title-worst{color:var(--muted)}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{text-align:left;padding:8px 12px;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap}
 td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--beige);vertical-align:middle}
@@ -312,8 +318,11 @@ function buildMonth(mi,posts,key,year,multiYear){
       <div class="kpi" style="--kpi-line:#84d1eb"><div class="kpi-label">Comentários</div><div class="kpi-val">${fmt(comments)}</div><div class="kpi-sub">interações</div></div>
       <div class="kpi" style="--kpi-line:#fcf6ec"><div class="kpi-label">Salvamentos</div><div class="kpi-val">${fmt(saves)}</div><div class="kpi-sub">saves</div></div>
     </div>
-    <div style="margin-bottom:1.25rem">
-      <div class="card-header" style="margin-bottom:.75rem"><div class="card-title">Top 3 posts do mês</div><div style="font-size:11px;color:var(--muted)">clique para abrir no Instagram</div></div>
+    <div class="posts-group posts-group-top">
+      <div class="posts-group-header">
+        <div class="posts-group-title posts-group-title-top">Top 3 posts do mês</div>
+        <div style="font-size:11px;color:var(--muted)">clique para abrir no Instagram</div>
+      </div>
       <div class="top-posts">${topPostsHtml(top3,'do mês')}</div>
     </div>
     <div class="charts-row">
@@ -396,12 +405,18 @@ function buildAnnual(yearMonths,year){
         <a class="best-link" style="margin-top:1rem;display:inline-flex" onclick="showView('view-${bestMonth.key}');return false;" href="#">Ver detalhes do mês →</a>
       </div>
     </div>
-    <div style="margin-bottom:1.25rem">
-      <div class="card-header" style="margin-bottom:.75rem"><div class="card-title">Top 3 posts do ano</div><div style="font-size:11px;color:var(--muted)">clique para abrir no Instagram</div></div>
+    <div class="posts-group posts-group-top">
+      <div class="posts-group-header">
+        <div class="posts-group-title posts-group-title-top">Top 3 posts do ano</div>
+        <div style="font-size:11px;color:var(--muted)">clique para abrir no Instagram</div>
+      </div>
       <div class="top-posts">${topPostsHtml(top3,'do ano')}</div>
     </div>
-    <div style="margin-bottom:1.25rem">
-      <div class="card-header" style="margin-bottom:.75rem"><div class="card-title" style="color:#f05924">3 piores posts do ano</div><div style="font-size:11px;color:var(--muted)">menor alcance do período</div></div>
+    <div class="posts-group posts-group-worst">
+      <div class="posts-group-header">
+        <div class="posts-group-title posts-group-title-worst">3 piores posts do ano</div>
+        <div style="font-size:11px;color:var(--muted)">menor alcance do período</div>
+      </div>
       <div class="top-posts">${worstPostsHtml(worst3)}</div>
     </div>
     <div>
