@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SetUp English School — Instagram Dashboard</title>
+<title>Dashboard - Set Up</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
@@ -68,7 +68,7 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .pill-total{border-color:rgba(255,255,255,.12);color:var(--beige);background:rgba(255,255,255,.05)}
 .pill-c{border-color:rgba(132,209,235,.3);color:var(--blue);background:rgba(132,209,235,.08)}
 .pill-r{border-color:rgba(240,89,36,.3);color:var(--orange);background:rgba(240,89,36,.08)}
-.pill-i{border-color:rgba(252,246,236,.2);color:rgba(252,246,236,.6);background:rgba(252,246,236,.05)}
+.pill-i{border-color:rgba(247,178,79,.3);color:#f7b24f;background:rgba(247,178,79,.08)}
 .pill-s{border-color:rgba(196,176,253,.3);color:#c4b0fd;background:rgba(196,176,253,.08)}
 .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.25rem}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
@@ -258,9 +258,10 @@ function buildMonth(mi,posts,key,year,multiYear){
   const bEng=bV>0?((bL+bS+bC+bSv)/bV*100):0;
   const bDesc=(best['Descrição']||'').split('\n')[0].trim();
   const bLink=best['Link permanente']||'';
+  const pillLabel=(k,n)=>({c:n===1?'Carrossel':'Carrosseis',r:'Reels',i:n===1?'Imagem':'Imagens',s:n===1?'Story':'Stories'})[k];
   const pillsHtml=`<span class="pill pill-total">${posts.length} posts</span>`+
-    [{k:'c',l:'Carrossel',c:'pill-c',d:'#84d1eb'},{k:'r',l:'Reel',c:'pill-r',d:'#f05924'},{k:'i',l:'Imagem',c:'pill-i',d:'rgba(252,246,236,.5)'},{k:'s',l:'Story',c:'pill-s',d:'#c4b0fd'}]
-    .filter(x=>counts[x.k]).map(x=>`<span class="pill ${x.c}"><span class="pill-dot" style="background:${x.d}"></span>${counts[x.k]} ${x.l}${counts[x.k]>1?'s':''}</span>`).join('');
+    [{k:'c',c:'pill-c',d:'#84d1eb'},{k:'r',c:'pill-r',d:'#f05924'},{k:'i',c:'pill-i',d:'#f7b24f'},{k:'s',c:'pill-s',d:'#c4b0fd'}]
+    .filter(x=>counts[x.k]).map(x=>`<span class="pill ${x.c}"><span class="pill-dot" style="background:${x.d}"></span>${counts[x.k]} ${pillLabel(x.k,counts[x.k])}</span>`).join('');
   const typesP=[...new Set(chrono.map(p=>tKey(p['Tipo de post'])))];
   const lgCfg={c:{l:'Carrossel',c:'#84d1eb'},r:{l:'Reel',c:'#f05924'},i:{l:'Imagem',c:'rgba(252,246,236,.35)'},s:{l:'Story',c:'#c4b0fd'}};
   const legendHtml=typesP.map(k=>`<div class="legend-item"><span class="legend-dot" style="background:${lgCfg[k].c}"></span>${lgCfg[k].l}</div>`).join('');
@@ -317,24 +318,29 @@ function buildMonth(mi,posts,key,year,multiYear){
   </div>`};
 }
 
-function buildAnnual(months,multiYear){
-  const allPosts=months.flatMap(m=>m.posts);
-  const year=new Date().getFullYear();
+function buildAnnual(yearMonths,year){
+  const allPosts=yearMonths.flatMap(m=>m.posts);
   const views=sum(allPosts,'Visualizações'),alc=sum(allPosts,'Alcance'),likes=sum(allPosts,'Curtidas'),shares=sum(allPosts,'Compartilhamentos'),comments=sum(allPosts,'Comentários'),saves=sum(allPosts,'Salvamentos');
+  // Best month
+  const bestMonth=yearMonths.reduce((a,b)=>sum(b.posts,'Visualizações')>sum(a.posts,'Visualizações')?b:a,yearMonths[0]);
+  const bmViews=sum(bestMonth.posts,'Visualizações'),bmLikes=sum(bestMonth.posts,'Curtidas'),bmShares=sum(bestMonth.posts,'Compartilhamentos'),bmComments=sum(bestMonth.posts,'Comentários');
+  const bmEng=bmViews>0?((bmLikes+bmShares+bmComments)/bmViews*100):0;
+  // Top 3 posts of year
   const top3=[...allPosts].sort((a,b)=>(parseInt(b['Visualizações'],10)||0)-(parseInt(a['Visualizações'],10)||0)).slice(0,3);
-  const msCards=months.map(m=>{
+  // Month summary cards
+  const msCards=yearMonths.map(m=>{
     const mv=sum(m.posts,'Visualizações'),ma=sum(m.posts,'Alcance'),ml=sum(m.posts,'Curtidas'),ms2=sum(m.posts,'Compartilhamentos');
-    const label=multiYear?`${MO[m.mi]} ${m.year}`:MO[m.mi];
-    return`<div class="ms-card" onclick="showView('view-${m.key}')">
-      <div class="ms-name">${label}</div>
+    const isBest=m===bestMonth;
+    return`<div class="ms-card" style="${isBest?'border-color:rgba(240,89,36,.35)':''}" onclick="showView('view-${m.key}')">
+      <div class="ms-name" style="${isBest?'color:var(--orange)':''}">${MO[m.mi]}${isBest?' ★':''}</div>
       <div class="ms-views">${fmt(mv)}</div>
       <div class="ms-label">visualizações · ${m.posts.length} posts</div>
       <div class="ms-row"><span><span class="ms-val">${fmt(ml)}</span> curtidas</span><span><span class="ms-val">${fmt(ms2)}</span> comp.</span><span><span class="ms-val">${fmt(ma)}</span> alcance</span></div>
     </div>`;
   }).join('');
-  return`<div class="view" id="view-annual">
+  return`<div class="view" id="view-annual-${year}">
     <div class="page-header">
-      <div><div class="page-eyebrow">Visão Geral</div><div class="page-title">Anual ${year}</div><div class="page-sub">@${ACCOUNT} · ${months.length} ${months.length===1?'mês':'meses'} · ${allPosts.length} publicações</div></div>
+      <div><div class="page-eyebrow">Visão Anual</div><div class="page-title">${year}</div><div class="page-sub">@${ACCOUNT} · ${yearMonths.length} ${yearMonths.length===1?'mês':'meses'} · ${allPosts.length} publicações</div></div>
     </div>
     <div class="kpi-grid">
       <div class="kpi" style="--kpi-line:#f05924"><div class="kpi-label">Visualizações</div><div class="kpi-val">${fmt(views)}</div><div class="kpi-sub">no ano</div></div>
@@ -342,19 +348,32 @@ function buildAnnual(months,multiYear){
       <div class="kpi" style="--kpi-line:#fcf6ec"><div class="kpi-label">Curtidas</div><div class="kpi-val">${fmt(likes)}</div><div class="kpi-sub">no ano</div></div>
       <div class="kpi" style="--kpi-line:#f05924"><div class="kpi-label">Compartilhamentos</div><div class="kpi-val">${fmt(shares)}</div><div class="kpi-sub">no ano</div></div>
       <div class="kpi" style="--kpi-line:#84d1eb"><div class="kpi-label">Comentários</div><div class="kpi-val">${fmt(comments)}</div><div class="kpi-sub">no ano</div></div>
-      <div class="kpi" style="--kpi-line:#fcf6ec"><div class="kpi-label">Publicações</div><div class="kpi-val">${allPosts.length}</div><div class="kpi-sub">${months.length} meses</div></div>
+      <div class="kpi" style="--kpi-line:#fcf6ec"><div class="kpi-label">Publicações</div><div class="kpi-val">${allPosts.length}</div><div class="kpi-sub">${yearMonths.length} meses</div></div>
     </div>
-    <div class="card" style="margin-bottom:1.25rem">
-      <div class="card-header"><div class="card-title">Visualizações por mês</div><div class="legend"><div class="legend-item"><span class="legend-dot" style="background:#f05924"></span>Views</div><div class="legend-item"><span class="legend-dot" style="background:#84d1eb"></span>Alcance</div></div></div>
-      <div style="position:relative;height:220px"><canvas id="ch-annual"></canvas></div>
-    </div>
-    <div style="margin-bottom:1.25rem">
-      <div class="card-header" style="margin-bottom:.75rem"><div class="card-title">Meses disponíveis</div><div style="font-size:11px;color:var(--muted)">clique para navegar</div></div>
-      <div class="annual-grid">${msCards}</div>
+    <div class="charts-row" style="margin-bottom:1.25rem">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Visualizações por mês</div><div class="legend"><div class="legend-item"><span class="legend-dot" style="background:#f05924"></span>Views</div><div class="legend-item"><span class="legend-dot" style="background:#84d1eb"></span>Alcance</div></div></div>
+        <div style="position:relative;height:220px"><canvas id="ch-annual-${year}"></canvas></div>
+      </div>
+      <div class="best-card">
+        <div class="best-eyebrow">Melhor mês do ano</div>
+        <div class="best-title" style="font-size:22px;letter-spacing:-.03em">${MO[bestMonth.mi]}</div>
+        <div class="best-meta">${bestMonth.posts.length} posts publicados</div>
+        <div class="best-stats" style="margin-top:.75rem">
+          <div class="best-stat"><div class="best-stat-val">${fmt(bmViews)}</div><div class="best-stat-label">views</div></div>
+          <div class="best-stat"><div class="best-stat-val">${fmt(bmLikes)}</div><div class="best-stat-label">curtidas</div></div>
+          <div class="best-stat"><div class="best-stat-val">${bmEng.toFixed(1)}%</div><div class="best-stat-label">eng. %</div></div>
+        </div>
+        <a class="best-link" style="margin-top:1rem;display:inline-flex" onclick="showView('view-${bestMonth.key}');return false;" href="#">Ver detalhes do mês →</a>
+      </div>
     </div>
     <div style="margin-bottom:1.25rem">
       <div class="card-header" style="margin-bottom:.75rem"><div class="card-title">Top 3 posts do ano</div><div style="font-size:11px;color:var(--muted)">clique para abrir no Instagram</div></div>
       <div class="top-posts">${topPostsHtml(top3,'do ano')}</div>
+    </div>
+    <div>
+      <div class="card-header" style="margin-bottom:.75rem"><div class="card-title">Meses disponíveis</div><div style="font-size:11px;color:var(--muted)">clique para navegar</div></div>
+      <div class="annual-grid">${msCards}</div>
     </div>
   </div>`;
 }
@@ -373,13 +392,15 @@ function showView(vid){
   if(tab)tab.classList.add('active');
   currentView=vid;
   const multiYear=[...new Set(allMonths.map(m=>m.year))].length>1;
-  if(vid.startsWith('view-')&&vid!=='view-annual'){
+  if(vid.startsWith('view-')&&!vid.startsWith('view-annual')){
     const key=vid.replace('view-','');
     if(chronoMap[key]){
       mkChart(`ch-${key}`,{type:'bar',data:{labels:chronoMap[key].map(p=>sDate(p['Horário de publicação'])),datasets:[{data:chronoMap[key].map(p=>parseInt(p['Visualizações'],10)||0),backgroundColor:chronoMap[key].map(p=>bColor(p['Tipo de post'])),borderRadius:5,borderSkipped:false}]},options:{...chartOpts(),plugins:{...chartOpts().plugins,tooltip:{...chartOpts().plugins.tooltip,callbacks:{label:ctx=>' '+ctx.parsed.y.toLocaleString('pt-BR')+' views'}}}}});
     }
-  } else if(vid==='view-annual'){
-    mkChart('ch-annual',{type:'bar',data:{labels:allMonths.map(m=>multiYear?`${MO[m.mi].slice(0,3)} ${m.year}`:MO[m.mi].slice(0,3)),datasets:[{label:'Views',data:allMonths.map(m=>sum(m.posts,'Visualizações')),backgroundColor:'#f05924',borderRadius:5,borderSkipped:false},{label:'Alcance',data:allMonths.map(m=>sum(m.posts,'Alcance')),backgroundColor:'#84d1eb',borderRadius:4,borderSkipped:false}]},options:{...chartOpts(),plugins:{...chartOpts().plugins,tooltip:{...chartOpts().plugins.tooltip}}}});
+  } else if(vid.startsWith('view-annual-')){
+    const y=parseInt(vid.replace('view-annual-',''));
+    const yMonths=allMonths.filter(m=>m.year===y);
+    mkChart(`ch-annual-${y}`,{type:'bar',data:{labels:yMonths.map(m=>MO[m.mi].slice(0,3)),datasets:[{label:'Views',data:yMonths.map(m=>sum(m.posts,'Visualizações')),backgroundColor:'#f05924',borderRadius:5,borderSkipped:false},{label:'Alcance',data:yMonths.map(m=>sum(m.posts,'Alcance')),backgroundColor:'#84d1eb',borderRadius:4,borderSkipped:false}]},options:{...chartOpts(),plugins:{...chartOpts().plugins,tooltip:{...chartOpts().plugins.tooltip}}}});
   }
 }
 
@@ -413,34 +434,56 @@ function showView(vid){
     return;
   }
   allMonths=results;
-  const years=[...new Set(results.map(m=>m.year))];
+  const years=[...new Set(results.map(m=>m.year))].sort();
   const multiYear=years.length>1;
   const nav=document.getElementById('monthNav');
-  if(multiYear){
-    years.forEach(y=>{
-      const yDiv=document.createElement('div');yDiv.className='sidebar-section';yDiv.textContent=String(y);nav.appendChild(yDiv);
-      results.filter(m=>m.year===y).forEach(m=>{
-        const btn=document.createElement('button');btn.className='nav-tab';btn.dataset.view=`view-${m.key}`;
-        btn.innerHTML=`<span class="nav-dot" style="background:${bColor(m.posts[0]?.['Tipo de post']||'')}"></span>${MO[m.mi]}`;
-        btn.onclick=()=>showView(`view-${m.key}`);nav.appendChild(btn);
-      });
-    });
-  } else {
-    results.forEach(m=>{
+  // Monthly nav grouped by year
+  years.forEach(y=>{
+    const yDiv=document.createElement('div');yDiv.className='sidebar-section';yDiv.textContent=String(y);nav.appendChild(yDiv);
+    results.filter(m=>m.year===y).forEach(m=>{
       const btn=document.createElement('button');btn.className='nav-tab';btn.dataset.view=`view-${m.key}`;
       btn.innerHTML=`<span class="nav-dot" style="background:${bColor(m.posts[0]?.['Tipo de post']||'')}"></span>${MO[m.mi]}`;
       btn.onclick=()=>showView(`view-${m.key}`);nav.appendChild(btn);
     });
-  }
-  document.getElementById('btn-annual').dataset.view='view-annual';
-  document.getElementById('btn-annual').onclick=()=>showView('view-annual');
+  });
+  // Annual nav — one per year
+  const annualSection=document.createElement('div');annualSection.className='sidebar-section';annualSection.textContent='Geral';
+  document.querySelector('.sidebar').insertBefore(annualSection,document.getElementById('btn-annual'));
+  years.forEach(y=>{
+    const btn=document.createElement('button');btn.className='nav-tab';btn.dataset.view=`view-annual-${y}`;
+    btn.innerHTML=`<span class="nav-dot" style="background:var(--orange)"></span>${y}`;
+    btn.onclick=()=>showView(`view-annual-${y}`);
+    document.querySelector('.sidebar').insertBefore(btn,document.getElementById('btn-annual'));
+  });
+  document.getElementById('btn-annual').style.display='none'; // hide old button
+  // Build views
   let html='';
   results.forEach(m=>{const b=buildMonth(m.mi,m.posts,m.key,m.year,multiYear);html+=b.html;chronoMap[m.key]=b.chrono;});
-  html+=buildAnnual(results,multiYear);
+  // Build one annual view per year
+  const byYear={};
+  results.forEach(m=>{if(!byYear[m.year])byYear[m.year]=[];byYear[m.year].push(m);});
+  years.forEach(y=>{html+=buildAnnual(byYear[y],y);});
   document.getElementById('mainContent').innerHTML=html;
   document.getElementById('app-loading').style.display='none';
   document.getElementById('app').style.display='block';
-  showView(`view-${results[results.length-1].key}`);
+  // Default: most recent annual view
+  showView(`view-annual-${years[years.length-1]}`);
+})();
+</script>
+<script>
+(function(){
+  const img=new Image();
+  img.onload=function(){
+    const c=document.createElement('canvas');
+    c.width=64;c.height=64;
+    const ctx=c.getContext('2d');
+    ctx.beginPath();ctx.arc(32,32,32,0,Math.PI*2);ctx.closePath();ctx.clip();
+    ctx.drawImage(img,0,0,64,64);
+    const link=document.querySelector("link[rel='icon']")||document.createElement('link');
+    link.rel='icon';link.href=c.toDataURL('image/png');
+    document.head.appendChild(link);
+  };
+  img.src='favicon.png';
 })();
 </script>
 </body>
