@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - Set Up</title>
+<title>Dashboard Temeron</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
@@ -53,8 +53,11 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .nav-tab.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--orange);border-radius:0 2px 2px 0}
 .nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .sidebar-footer{margin-top:auto;padding:1.25rem;border-top:1px solid var(--border)}
-.temeron-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
-.temeron-t{width:18px;height:18px;background:var(--orange);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0}
+.temeron-badge{display:flex;align-items:center;gap:10px}
+.temeron-t{width:28px;height:28px;background:var(--orange);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;flex-shrink:0}
+.temeron-logo{height:22px;width:auto;display:block}
+.temeron-name{font-size:13px;font-weight:700;color:var(--beige)}
+.temeron-rights{font-size:11px;color:var(--muted);margin-top:1px}
 .main{padding:2rem;overflow-x:hidden}
 .view{display:none}
 .view.active{display:block}
@@ -108,10 +111,10 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .top-post-img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--surface2)}
 .top-post-ph{width:100%;aspect-ratio:4/5;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;font-weight:600;flex-direction:column;gap:6px;text-align:center;padding:1rem}
 .top-post-ph-icon{font-size:22px;opacity:.35}
-.top-post-body{padding:10px 12px}
-.top-post-rank{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--orange);margin-bottom:4px}
-.top-post-desc{font-size:11px;color:var(--dimmed);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
-.top-post-stats{display:flex;gap:8px;font-size:11px;font-weight:700;color:var(--beige)}
+.top-post-body{padding:12px 14px}
+.top-post-rank{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--orange);margin-bottom:6px}
+.top-post-desc{font-size:13px;color:var(--dimmed);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
+.top-post-stats{display:flex;gap:8px;font-size:13px;font-weight:700;color:var(--beige)}
 .top-post-stats span{color:var(--muted);font-weight:500}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -167,7 +170,15 @@ code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-siz
         <span class="nav-dot" style="background:var(--orange)"></span>Visão Anual
       </button>
       <div class="sidebar-footer">
-        <div class="temeron-badge"><div class="temeron-t">T</div>Dashboard por Temeron</div>
+        <div class="temeron-badge">
+          <img class="temeron-logo" src="favicon.png" alt="Temeron"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="temeron-t" style="display:none">T</div>
+          <div>
+            <div class="temeron-name">Temeron<sup style="font-size:9px">®</sup></div>
+            <div class="temeron-rights">© 2026 Temeron. Todos os direitos reservados.</div>
+          </div>
+        </div>
       </div>
     </aside>
     <main class="main" id="mainContent"></main>
@@ -223,7 +234,27 @@ function topPostsHtml(top3,label='do mês'){
   }).join('');
 }
 
-function tableHtml(sorted,best){
+function worstPostsHtml(worst3){
+  return worst3.map((p,i)=>{
+    const code=sc(p['Link permanente']||'');
+    const v=parseInt(p['Visualizações'],10)||0;
+    const l=parseInt(p['Curtidas'],10)||0,sh=parseInt(p['Compartilhamentos'],10)||0,co=parseInt(p['Comentários'],10)||0,sv=parseInt(p['Salvamentos'],10)||0;
+    const eng=v>0?(l+sh+co+sv)/v*100:0;
+    const desc=(p['Descrição']||'').split('\n')[0].trim();
+    const url=p['Link permanente']||'#';
+    const ranks=['1º','2º','3º'];
+    const imgHtml=code
+      ?`${tryImg(code)}<div class="top-post-ph" style="display:none"><div class="top-post-ph-icon">📷</div><div>posts/${code}.jpg</div></div>`
+      :`<div class="top-post-ph"><div class="top-post-ph-icon">📷</div><div>Sem imagem</div></div>`;
+    return`<a class="top-post-card" style="border-color:rgba(240,89,36,.15)" href="${url}" target="_blank" rel="noopener">
+      ${imgHtml}
+      <div class="top-post-body">
+        <div class="top-post-rank" style="color:var(--muted)">${ranks[i]} menor · ${fmt(v)} views</div>
+        <div class="top-post-desc">${desc}</div>
+        <div class="top-post-stats">${fmt(l)} <span>curtidas</span> &nbsp; ${ePill(eng)}</div>
+      </div></a>`;
+  }).join('');
+}
   return sorted.map(p=>{
     const v=parseInt(p['Visualizações'],10)||0,l=parseInt(p['Curtidas'],10)||0,sh=parseInt(p['Compartilhamentos'],10)||0,co=parseInt(p['Comentários'],10)||0,sv=parseInt(p['Salvamentos'],10)||0;
     const eng=v>0?(l+sh+co+sv)/v*100:0;
@@ -327,6 +358,7 @@ function buildAnnual(yearMonths,year){
   const bmEng=bmViews>0?((bmLikes+bmShares+bmComments)/bmViews*100):0;
   // Top 3 posts of year
   const top3=[...allPosts].sort((a,b)=>(parseInt(b['Visualizações'],10)||0)-(parseInt(a['Visualizações'],10)||0)).slice(0,3);
+  const worst3=[...allPosts].sort((a,b)=>(parseInt(a['Visualizações'],10)||0)-(parseInt(b['Visualizações'],10)||0)).slice(0,3);
   // Month summary cards
   const msCards=yearMonths.map(m=>{
     const mv=sum(m.posts,'Visualizações'),ma=sum(m.posts,'Alcance'),ml=sum(m.posts,'Curtidas'),ms2=sum(m.posts,'Compartilhamentos');
@@ -370,6 +402,10 @@ function buildAnnual(yearMonths,year){
     <div style="margin-bottom:1.25rem">
       <div class="card-header" style="margin-bottom:.75rem"><div class="card-title">Top 3 posts do ano</div><div style="font-size:11px;color:var(--muted)">clique para abrir no Instagram</div></div>
       <div class="top-posts">${topPostsHtml(top3,'do ano')}</div>
+    </div>
+    <div style="margin-bottom:1.25rem">
+      <div class="card-header" style="margin-bottom:.75rem"><div class="card-title" style="color:#f05924">3 piores posts do ano</div><div style="font-size:11px;color:var(--muted)">menor alcance do período</div></div>
+      <div class="top-posts">${worstPostsHtml(worst3)}</div>
     </div>
     <div>
       <div class="card-header" style="margin-bottom:.75rem"><div class="card-title">Meses disponíveis</div><div style="font-size:11px;color:var(--muted)">clique para navegar</div></div>
