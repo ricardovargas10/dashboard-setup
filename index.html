@@ -234,27 +234,24 @@ function topPostsHtml(top3,label='do mês'){
   }).join('');
 }
 
-function worstPostsHtml(worst3){
-  return worst3.map((p,i)=>{
+function worstPostsHtml(posts3){
+  return posts3.map((p,i)=>{
     const code=sc(p['Link permanente']||'');
     const v=parseInt(p['Visualizações'],10)||0;
     const l=parseInt(p['Curtidas'],10)||0,sh=parseInt(p['Compartilhamentos'],10)||0,co=parseInt(p['Comentários'],10)||0,sv=parseInt(p['Salvamentos'],10)||0;
     const eng=v>0?(l+sh+co+sv)/v*100:0;
     const desc=(p['Descrição']||'').split('\n')[0].trim();
     const url=p['Link permanente']||'#';
-    const ranks=['1º','2º','3º'];
-    const imgHtml=code
-      ?`${tryImg(code)}<div class="top-post-ph" style="display:none"><div class="top-post-ph-icon">📷</div><div>posts/${code}.jpg</div></div>`
-      :`<div class="top-post-ph"><div class="top-post-ph-icon">📷</div><div>Sem imagem</div></div>`;
     return`<a class="top-post-card" style="border-color:rgba(240,89,36,.15)" href="${url}" target="_blank" rel="noopener">
-      ${imgHtml}
+      ${imgBlock(code)}
       <div class="top-post-body">
-        <div class="top-post-rank" style="color:var(--muted)">${ranks[i]} menor · ${fmt(v)} views</div>
+        <div class="top-post-rank" style="color:var(--muted)">${['1º','2º','3º'][i]} menor · ${fmt(v)} views</div>
         <div class="top-post-desc">${desc}</div>
         <div class="top-post-stats">${fmt(l)} <span>curtidas</span> &nbsp; ${ePill(eng)}</div>
       </div></a>`;
   }).join('');
 }
+function tableHtml(sorted,best){
   return sorted.map(p=>{
     const v=parseInt(p['Visualizações'],10)||0,l=parseInt(p['Curtidas'],10)||0,sh=parseInt(p['Compartilhamentos'],10)||0,co=parseInt(p['Comentários'],10)||0,sv=parseInt(p['Salvamentos'],10)||0;
     const eng=v>0?(l+sh+co+sv)/v*100:0;
