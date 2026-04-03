@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Temeron</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
@@ -306,7 +307,7 @@ function tableHtml(sorted,best){
 }
 
 function renderAccountData(acct){
-  if(!acct) return`<div class="acct-empty">📋 Dados de conta não encontrados para este mês.<br>Crie o arquivo <code>data/YYYY-MM-conta.csv</code> para exibir seguidores, conversas e mais.</div>`;
+  if(!acct) return`<div class="acct-empty">📋 Dados de conta não encontrados.<br>Verifique se o mês está preenchido corretamente na planilha <code>data/dados_gerais.xlsx</code>.</div>`;
   const g=v=>acct[v]!=null&&acct[v]!==''?acct[v]:'—';
   const n=k=>parseFloat(acct[k])||0;
   const totalSeg=n('Total seguidores');
@@ -345,16 +346,6 @@ function renderAccountData(acct){
       <div class="acct-label">Novos contatos</div>
       <div class="acct-val">${g('Novos contatos')}</div>
       <div class="acct-sub">via direct</div>
-    </div>
-    <div class="acct-card">
-      <div class="acct-label">Taxa de resposta</div>
-      <div class="acct-val">${g('Taxa de resposta')}${acct['Taxa de resposta']?'%':''}</div>
-      <div class="acct-sub">mensagens respondidas</div>
-    </div>
-    <div class="acct-card">
-      <div class="acct-label">Conversões</div>
-      <div class="acct-val">${g('Conversões')}</div>
-      <div class="acct-sub">pedidos criados</div>
     </div>
   </div>`;
 }
@@ -541,6 +532,8 @@ function showView(vid){
       candidates.push({year:y,mi:i,key:`${y}-${String(i+1).padStart(2,'0')}`});
     }
   });
+  
+  // 1. Fetch Posts Data (same as before)
   const fetches=candidates.map(({year,mi,key})=>{
     return fetch(`data/${key}.csv`).then(r=>r.ok?r.text():null).catch(()=>null)
       .then(text=>{
@@ -553,25 +546,43 @@ function showView(vid){
   const seen=new Set();
   const results=raw.filter(m=>{if(seen.has(m.key))return false;seen.add(m.key);return true;});
   results.sort((a,b)=>a.key.localeCompare(b.key));
+  
   if(!results.length){
-    const y=thisYear;
     document.getElementById('app-loading').innerHTML=`<div class="empty-wrap"><div class="et">Nenhum dado encontrado</div><p>Suba os arquivos CSV na pasta <code>data/</code> com o formato <code>${thisYear}-03.csv</code></p></div>`;
     return;
   }
-  const acctFetches=results.map(m=>
-    fetch(`data/${m.key}-conta.csv`).then(r=>r.ok?r.text():null).catch(()=>null)
-      .then(text=>{
-        if(!text)return{key:m.key,acct:null};
-        const parsed=Papa.parse(text,{header:true,skipEmptyLines:true});
-        return{key:m.key,acct:parsed.data[0]||null};
-      })
-  );
-  const acctResults=await Promise.all(acctFetches);
+
+  // 2. Fetch General Account Data (NEW LOGIC)
+  const years=[...new Set(results.map(m=>m.year))].sort();
   const acctMap={};
-  acctResults.forEach(r=>acctMap[r.key]=r.acct);
+  try {
+      const res = await fetch('data/dados_gerais.xlsx');
+      if(res.ok) {
+          const ab = await res.arrayBuffer();
+          const workbook = XLSX.read(ab, {type: 'array'});
+          workbook.SheetNames.forEach(sheetName => {
+              const y = parseInt(sheetName, 10);
+              if(isNaN(y)) return;
+              const worksheet = workbook.Sheets[sheetName];
+              const data = XLSX.utils.sheet_to_json(worksheet, {defval: ""});
+              data.forEach(row => {
+                  if(!row['Mês']) return;
+                  const monthName = row['Mês'].trim().toLowerCase();
+                  const mi = MO.findIndex(m => m.toLowerCase() === monthName);
+                  if(mi !== -1) {
+                      const key = `${y}-${String(mi+1).padStart(2,'0')}`;
+                      acctMap[key] = row;
+                  }
+              });
+          });
+      } else {
+          console.error("Arquivo Excel não encontrado.");
+      }
+  } catch(e) {
+      console.error("Erro na leitura do Excel:", e);
+  }
 
   allMonths=results;
-  const years=[...new Set(results.map(m=>m.year))].sort();
   const multiYear=years.length>1;
   const nav=document.getElementById('monthNav');
   years.forEach(y=>{
