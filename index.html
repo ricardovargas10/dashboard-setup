@@ -161,13 +161,13 @@ code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-siz
       </div>
       <div class="sidebar-section">Mensal</div>
       <div id="monthNav"></div>
-      <div class="sidebar-section">Geral</div>
+      <div class="sidebar-section">Anual</div>
       <button class="nav-tab" id="btn-annual">
         <span class="nav-dot" style="background:var(--orange)"></span>Visão Anual
       </button>
       <div class="sidebar-footer">
         <div class="temeron-badge">
-          <img class="temeron-logo" src="favicon.png" alt="Temeron"
+          <img class="temeron-logo" src="temeron-logo.png" alt="Temeron"
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div class="temeron-t" style="display:none">T</div>
           <div>
@@ -347,6 +347,11 @@ function renderAccountData(acct){
       <div class="acct-val">${g('Novos contatos')}</div>
       <div class="acct-sub">via direct</div>
     </div>
+    <div class="acct-card">
+      <div class="acct-label">Taxa de resposta</div>
+      <div class="acct-val">${g('Taxa de resposta')}${acct['Taxa de resposta']?'%':''}</div>
+      <div class="acct-sub">mensagens respondidas</div>
+    </div>
   </div>`;
 }
 
@@ -365,8 +370,8 @@ function buildMonth(mi,posts,key,year,multiYear,acct=null){
   const bEng=bV>0?((bL+bS+bC+bSv)/bV*100):0;
   const bDesc=(best['Descrição']||'').split('\n')[0].trim();
   const bLink=best['Link permanente']||'';
-  const pillLabel=(k,n)=>({c:n===1?'Carrossel':'Carrosseis',r:'Reels',i:n===1?'Imagem':'Imagens',s:n===1?'Story':'Stories'})[k];
-  const pillsHtml=`<span class="pill pill-total">${posts.length} posts</span>`+
+  const pillLabel=(k,n)=>({c:n===1?'Carrossel':'Carrosséis',r:'Reels',i:n===1?'Post':'Posts',s:n===1?'Story':'Stories'})[k];
+  const pillsHtml=`<span class="pill pill-total">${posts.length} publicações</span>`+
     [{k:'c',c:'pill-c',d:'#84d1eb'},{k:'r',c:'pill-r',d:'#f05924'},{k:'i',c:'pill-i',d:'#f7b24f'},{k:'s',c:'pill-s',d:'#c4b0fd'}]
     .filter(x=>counts[x.k]).map(x=>`<span class="pill ${x.c}"><span class="pill-dot" style="background:${x.d}"></span>${counts[x.k]} ${pillLabel(x.k,counts[x.k])}</span>`).join('');
   const typesP=[...new Set(chrono.map(p=>tKey(p['Tipo de post'])))];
@@ -476,6 +481,10 @@ function buildAnnual(yearMonths,year){
         <a class="best-link" style="margin-top:1rem;display:inline-flex" onclick="showView('view-${bestMonth.key}');return false;" href="#">Ver detalhes do mês →</a>
       </div>
     </div>
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-header"><div class="card-title">Crescimento de Seguidores</div></div>
+      <div style="position:relative;height:220px"><canvas id="ch-annual-foll-${year}"></canvas></div>
+    </div>
     <div class="posts-group posts-group-top">
       <div class="posts-group-header">
         <div class="posts-group-title posts-group-title-top">Top 3 posts do ano</div>
@@ -520,6 +529,34 @@ function showView(vid){
     const y=parseInt(vid.replace('view-annual-',''));
     const yMonths=allMonths.filter(m=>m.year===y);
     mkChart(`ch-annual-${y}`,{type:'bar',data:{labels:yMonths.map(m=>MO[m.mi].slice(0,3)),datasets:[{label:'Views',data:yMonths.map(m=>sum(m.posts,'Visualizações')),backgroundColor:'#f05924',borderRadius:5,borderSkipped:false},{label:'Alcance',data:yMonths.map(m=>sum(m.posts,'Alcance')),backgroundColor:'#84d1eb',borderRadius:4,borderSkipped:false}]},options:{...chartOpts(),plugins:{...chartOpts().plugins,tooltip:{...chartOpts().plugins.tooltip}}}});
+    if(window.acctMap) {
+        const follData = yMonths.map(m => {
+            const acct = window.acctMap[m.key];
+            return acct ? (parseFloat(acct['Total seguidores']) || null) : null;
+        });
+        if (follData.some(d => d !== null)) {
+            mkChart(`ch-annual-foll-${y}`, {
+                type: 'line',
+                data: {
+                    labels: yMonths.map(m=>MO[m.mi].slice(0,3)),
+                    datasets: [{
+                        label: 'Total de Seguidores',
+                        data: follData,
+                        borderColor: '#34d399',
+                        backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#34d399',
+                        pointBorderColor: '#161218',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {...chartOpts('line'), plugins: {...chartOpts().plugins, tooltip: {...chartOpts().plugins.tooltip, callbacks: {label: ctx => ' ' + ctx.parsed.y.toLocaleString('pt-BR') + ' seguidores'}}}}
+            });
+        }
+    }
   }
 }
 
@@ -593,8 +630,7 @@ function showView(vid){
       btn.onclick=()=>showView(`view-${m.key}`);nav.appendChild(btn);
     });
   });
-  const annualSection=document.createElement('div');annualSection.className='sidebar-section';annualSection.textContent='Geral';
-  document.querySelector('.sidebar').insertBefore(annualSection,document.getElementById('btn-annual'));
+  
   years.forEach(y=>{
     const btn=document.createElement('button');btn.className='nav-tab';btn.dataset.view=`view-annual-${y}`;
     btn.innerHTML=`<span class="nav-dot" style="background:var(--orange)"></span>${y}`;
@@ -602,6 +638,7 @@ function showView(vid){
     document.querySelector('.sidebar').insertBefore(btn,document.getElementById('btn-annual'));
   });
   document.getElementById('btn-annual').style.display='none';
+  window.acctMap = acctMap;
   let html='';
   results.forEach(m=>{const b=buildMonth(m.mi,m.posts,m.key,m.year,multiYear,acctMap[m.key]||null);html+=b.html;chronoMap[m.key]=b.chrono;});
   const byYear={};
