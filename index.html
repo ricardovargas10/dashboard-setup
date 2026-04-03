@@ -9,25 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<!--
-  COMO USAR
-  ─────────────────────────────────────────────
-  1. DADOS MENSAIS
-     Exporte o CSV do Meta Business Suite e renomeie:
-       data/2026-01.csv  → Janeiro
-       data/2026-02.csv  → Fevereiro
-       data/2026-03.csv  → Março  (e assim por diante)
-
-  2. IMAGENS DOS POSTS
-     Pegue o shortcode da URL do Instagram:
-       https://www.instagram.com/p/DVbPpeqiFvM/
-                                ^^^^^^^^^^^^^ este é o código
-     Salve a imagem como:  posts/DVbPpeqiFvM.jpg
-     (funciona com .jpg, .jpeg ou .png)
-
-  3. OUTROS CLIENTES
-     Mude CLIENT_NAME e ACCOUNT abaixo:
--->
 <script>
   const CLIENT_NAME = 'SetUp English School';
   const ACCOUNT     = 'setup.english';
@@ -201,31 +182,46 @@ code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-siz
 <script>
 const MO=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const WEEKDAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
 function parsePostDate(s){
   if(!s)return null;
   const parts=s.trim().split(' ');
   const p=(parts[0]||'').split('/');
   if(p.length<3)return null;
-  // Meta exports in UTC — convert to BRT (UTC-3)
+  
   const rawTime=parts[1]||'00:00';
   const[hStr,mStr]=(rawTime+':00').split(':');
   let h=parseInt(hStr,10),m=parseInt(mStr,10);
-  const dateUTC=new Date(Date.UTC(parseInt(p[2]),parseInt(p[0])-1,parseInt(p[1]),h,m));
-  const dateBRT=new Date(dateUTC.getTime()-3*60*60*1000);
-  const hBRT=String(dateBRT.getUTCHours()).padStart(2,'0');
-  const mBRT=String(dateBRT.getUTCMinutes()).padStart(2,'0');
-  return{date:dateBRT,time:`${hBRT}:${mBRT}`};
+  
+  const dateBRT=new Date(parseInt(p[2]),parseInt(p[0])-1,parseInt(p[1]),h+5,m);
+  const hFmt=String(dateBRT.getHours()).padStart(2,'0');
+  const mFmt=String(dateBRT.getMinutes()).padStart(2,'0');
+  
+  return{date:dateBRT,time:`${hFmt}:${mFmt}`};
 }
+
 function postDateLine(s){
   const r=parsePostDate(s);
   if(!r)return'';
   const{date,time}=r;
   return`${WEEKDAYS[date.getDay()]} · ${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')} · ${time}`;
 }
+
 const MS=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const fmt=n=>(isNaN(n)||n==null)?'—':Number(n).toLocaleString('pt-BR');
-function fmtD(s){if(!s)return'—';const p=s.split(' ')[0].split('/');return p.length<3?s:`${p[1].padStart(2,'0')}/${p[0].padStart(2,'0')}/${p[2].slice(-2)}`}
-function sDate(s){if(!s)return'—';const p=s.split(' ')[0].split('/');return p.length<2?s:`${p[1].padStart(2,'0')} ${MS[parseInt(p[0],10)-1]||p[0]}`}
+
+function fmtD(s){
+  const r=parsePostDate(s);
+  if(!r)return'—';
+  return `${String(r.date.getDate()).padStart(2,'0')}/${String(r.date.getMonth()+1).padStart(2,'0')}/${String(r.date.getFullYear()).slice(-2)} às ${r.time}`;
+}
+
+function sDate(s){
+  const r=parsePostDate(s);
+  if(!r)return'—';
+  return `${String(r.date.getDate()).padStart(2,'0')} ${MS[r.date.getMonth()]}`;
+}
+
 function tKey(t){const s=(t||'').toLowerCase();if(s.includes('carrossel'))return'c';if(s.includes('reel'))return'r';if(s.includes('story')||s.includes('storie'))return's';return'i'}
 function sTipo(t){return{c:'Carrossel',r:'Reel',i:'Imagem',s:'Story'}[tKey(t)]}
 function bCls(t){return{c:'badge-c',r:'badge-r',i:'badge-i',s:'badge-s'}[tKey(t)]}
@@ -445,14 +441,11 @@ function buildMonth(mi,posts,key,year,multiYear,acct=null){
 function buildAnnual(yearMonths,year){
   const allPosts=yearMonths.flatMap(m=>m.posts);
   const views=sum(allPosts,'Visualizações'),alc=sum(allPosts,'Alcance'),likes=sum(allPosts,'Curtidas'),shares=sum(allPosts,'Compartilhamentos'),comments=sum(allPosts,'Comentários'),saves=sum(allPosts,'Salvamentos');
-  // Best month
   const bestMonth=yearMonths.reduce((a,b)=>sum(b.posts,'Visualizações')>sum(a.posts,'Visualizações')?b:a,yearMonths[0]);
   const bmViews=sum(bestMonth.posts,'Visualizações'),bmLikes=sum(bestMonth.posts,'Curtidas'),bmShares=sum(bestMonth.posts,'Compartilhamentos'),bmComments=sum(bestMonth.posts,'Comentários');
   const bmEng=bmViews>0?((bmLikes+bmShares+bmComments)/bmViews*100):0;
-  // Top 3 posts of year
   const top3=[...allPosts].sort((a,b)=>(parseInt(b['Visualizações'],10)||0)-(parseInt(a['Visualizações'],10)||0)).slice(0,3);
   const worst3=[...allPosts].sort((a,b)=>(parseInt(a['Visualizações'],10)||0)-(parseInt(b['Visualizações'],10)||0)).slice(0,3);
-  // Month summary cards
   const msCards=yearMonths.map(m=>{
     const mv=sum(m.posts,'Visualizações'),ma=sum(m.posts,'Alcance'),ml=sum(m.posts,'Curtidas'),ms2=sum(m.posts,'Compartilhamentos');
     const isBest=m===bestMonth;
@@ -542,7 +535,6 @@ function showView(vid){
 (async function init(){
   const now=new Date();
   const thisYear=now.getFullYear();
-  // Try current year + previous year (for December rollover etc.)
   const candidates=[];
   [thisYear-1,thisYear].forEach(y=>{
     for(let i=0;i<12;i++){
@@ -557,9 +549,7 @@ function showView(vid){
         return posts.length?{mi,year,key,posts}:null;
       });
   });
-  // Dedupe: if same month appears in multiple years, keep all (different year entries)
   const raw=(await Promise.all(fetches)).filter(Boolean);
-  // Use key (year-month) as unique identifier, build display label
   const seen=new Set();
   const results=raw.filter(m=>{if(seen.has(m.key))return false;seen.add(m.key);return true;});
   results.sort((a,b)=>a.key.localeCompare(b.key));
@@ -568,7 +558,6 @@ function showView(vid){
     document.getElementById('app-loading').innerHTML=`<div class="empty-wrap"><div class="et">Nenhum dado encontrado</div><p>Suba os arquivos CSV na pasta <code>data/</code> com o formato <code>${thisYear}-03.csv</code></p></div>`;
     return;
   }
-  // Also fetch account data for each month (optional CSV)
   const acctFetches=results.map(m=>
     fetch(`data/${m.key}-conta.csv`).then(r=>r.ok?r.text():null).catch(()=>null)
       .then(text=>{
@@ -585,7 +574,6 @@ function showView(vid){
   const years=[...new Set(results.map(m=>m.year))].sort();
   const multiYear=years.length>1;
   const nav=document.getElementById('monthNav');
-  // Monthly nav grouped by year
   years.forEach(y=>{
     const yDiv=document.createElement('div');yDiv.className='sidebar-section';yDiv.textContent=String(y);nav.appendChild(yDiv);
     results.filter(m=>m.year===y).forEach(m=>{
@@ -594,7 +582,6 @@ function showView(vid){
       btn.onclick=()=>showView(`view-${m.key}`);nav.appendChild(btn);
     });
   });
-  // Annual nav — one per year
   const annualSection=document.createElement('div');annualSection.className='sidebar-section';annualSection.textContent='Geral';
   document.querySelector('.sidebar').insertBefore(annualSection,document.getElementById('btn-annual'));
   years.forEach(y=>{
@@ -604,10 +591,8 @@ function showView(vid){
     document.querySelector('.sidebar').insertBefore(btn,document.getElementById('btn-annual'));
   });
   document.getElementById('btn-annual').style.display='none';
-  // Build views
   let html='';
   results.forEach(m=>{const b=buildMonth(m.mi,m.posts,m.key,m.year,multiYear,acctMap[m.key]||null);html+=b.html;chronoMap[m.key]=b.chrono;});
-  // Build one annual view per year
   const byYear={};
   results.forEach(m=>{if(!byYear[m.year])byYear[m.year]=[];byYear[m.year].push(m);});
   years.forEach(y=>{html+=buildAnnual(byYear[y],y);});
