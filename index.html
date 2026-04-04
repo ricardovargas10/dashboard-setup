@@ -25,11 +25,14 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 #app{display:none}
 .layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh;transition:grid-template-columns .25s ease}
 .layout.sidebar-collapsed{grid-template-columns:0px 1fr}
-.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 0;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;transition:transform .25s ease, width .25s ease;width:220px;z-index:10}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 0;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;transition:transform .25s ease,width .25s ease;width:220px;z-index:10}
 .layout.sidebar-collapsed .sidebar{transform:translateX(-220px);width:0;border-right:none}
-.sidebar-logo{padding:0 1.25rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
+.sidebar-logo{padding:0 1.25rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .sidebar-logo img{height:28px;width:auto;display:block}
 .logo-fallback{font-size:16px;font-weight:800;color:var(--orange);display:none}
+.hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;border-radius:6px;transition:background .15s}
+.hamburger:hover{background:rgba(255,255,255,.06)}
+.hamburger span{display:block;width:16px;height:2px;background:var(--muted);border-radius:2px}
 .sidebar-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:0 1.25rem;margin:1rem 0 .4rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
 .sidebar-section:hover{color:var(--beige)}
 .sidebar-section .chevron{font-size:8px;transition:transform .2s;opacity:.5}
@@ -42,16 +45,24 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .nav-tab.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--orange);border-radius:0 2px 2px 0}
 .nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .sidebar-footer{margin-top:auto;padding:1.25rem;border-top:1px solid var(--border)}
-.hamburger{position:fixed;top:1rem;left:1rem;z-index:100;background:var(--surface);border:1px solid var(--border);border-radius:8px;width:36px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:background .15s;padding:0}
-.hamburger:hover{background:var(--surface2)}
-.hamburger span{display:block;width:16px;height:2px;background:var(--beige);border-radius:2px;transition:transform .2s, opacity .2s}
-.layout.sidebar-collapsed .hamburger{left:1rem}
+.main{padding:2rem;overflow-x:hidden}
+.weekday-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:1.25rem}
+.weekday-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 8px;text-align:center}
+.weekday-card.wd-best{border-color:rgba(132,209,235,.4);background:rgba(132,209,235,.05)}
+.weekday-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+.weekday-card.wd-best .weekday-name{color:var(--blue)}
+.weekday-views{font-size:18px;font-weight:800;color:var(--beige);letter-spacing:-.03em;line-height:1}
+.weekday-card.wd-best .weekday-views{color:var(--blue)}
+.weekday-posts{font-size:10px;color:var(--muted);margin-top:3px}
+.weekday-eng{font-size:11px;font-weight:700;color:var(--muted);margin-top:5px}
+.weekday-bar-wrap{height:3px;background:rgba(255,255,255,.06);border-radius:99px;margin-top:8px;overflow:hidden}
+.weekday-bar{height:100%;border-radius:99px;background:rgba(255,255,255,.15)}
+.weekday-card.wd-best .weekday-bar{background:var(--blue)}
 .temeron-badge{display:flex;align-items:center;gap:10px}
 .temeron-t{width:28px;height:28px;background:var(--orange);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;flex-shrink:0}
 .temeron-logo{height:22px;width:auto;display:block}
 .temeron-name{font-size:13px;font-weight:700;color:var(--beige)}
 .temeron-rights{font-size:11px;color:var(--muted);margin-top:1px}
-.main{padding:2rem;padding-top:3.5rem;overflow-x:hidden}
 .view{display:none}
 .view.active{display:block}
 .page-header{margin-bottom:1.75rem;padding-bottom:1.75rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem}
@@ -163,15 +174,16 @@ code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-siz
 <body>
 <div id="app-loading"><div class="spinner"></div><p>Carregando dados...</p></div>
 <div id="app">
-  <button class="hamburger" id="hamburger" title="Menu">
-    <span></span><span></span><span></span>
-  </button>
   <div class="layout" id="layout">
     <aside class="sidebar">
       <div class="sidebar-logo">
         <img src="logo.png" alt="SetUp"
           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
         <span class="logo-fallback">SetUp</span>
+        <button class="hamburger" id="hamburger" title="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
       </div>
       <div class="sidebar-section">Mensal</div>
       <div id="monthNav"></div>
@@ -371,6 +383,37 @@ function renderAccountData(acct){
   </div>`;
 }
 
+function weekdayAnalysis(posts){
+  const WD_NAMES=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const stats=Array.from({length:7},()=>({views:0,likes:0,shares:0,comments:0,saves:0,count:0}));
+  posts.forEach(p=>{
+    const r=parsePostDate(p['Horário de publicação']);
+    if(!r)return;
+    const d=r.date.getDay();
+    stats[d].views  +=(parseInt(p['Visualizações'],10)||0);
+    stats[d].likes  +=(parseInt(p['Curtidas'],10)||0);
+    stats[d].shares +=(parseInt(p['Compartilhamentos'],10)||0);
+    stats[d].comments+=(parseInt(p['Comentários'],10)||0);
+    stats[d].saves  +=(parseInt(p['Salvamentos'],10)||0);
+    stats[d].count++;
+  });
+  const maxViews=Math.max(...stats.map(s=>s.views),1);
+  const bestIdx=stats.reduce((bi,s,i)=>s.views>stats[bi].views?i:bi,0);
+  return`<div class="weekday-grid">${WD_NAMES.map((name,i)=>{
+    const s=stats[i];
+    const eng=s.views>0?((s.likes+s.shares+s.comments+s.saves)/s.views*100):0;
+    const isBest=i===bestIdx&&s.count>0;
+    const avgViews=s.count>0?Math.round(s.views/s.count):0;
+    return`<div class="weekday-card${isBest?' wd-best':''}">
+      <div class="weekday-name">${name}</div>
+      <div class="weekday-views">${s.count>0?fmt(avgViews):'—'}</div>
+      <div class="weekday-posts">${s.count} post${s.count!==1?'s':''}</div>
+      <div class="weekday-eng">${s.count>0?eng.toFixed(1)+'%':'—'}</div>
+      <div class="weekday-bar-wrap"><div class="weekday-bar" style="width:${(s.views/maxViews*100).toFixed(1)}%"></div></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
 function buildMonth(mi,posts,key,year,multiYear,acct=null){
   const sorted=[...posts].sort((a,b)=>new Date(b['Horário de publicação']||0)-new Date(a['Horário de publicação']||0));
   const chrono=[...posts].sort((a,b)=>new Date(a['Horário de publicação']||0)-new Date(b['Horário de publicação']||0));
@@ -413,6 +456,10 @@ function buildMonth(mi,posts,key,year,multiYear,acct=null){
       <div class="kpi" style="--kpi-line:#fcf6ec"><div class="kpi-label">Salvamentos</div><div class="kpi-val">${fmt(saves)}</div><div class="kpi-sub">saves</div></div>
     </div>
     ${renderAccountData(acct)}
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-header"><div class="card-title">Desempenho por dia da semana</div><div style="font-size:11px;color:var(--muted)">média de views · eng. % · posts publicados</div></div>
+      ${weekdayAnalysis(posts)}
+    </div>
     <div class="posts-group posts-group-top">
       <div class="posts-group-header">
         <div class="posts-group-title posts-group-title-top">Top 3 posts do mês</div>
