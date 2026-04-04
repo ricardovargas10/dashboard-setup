@@ -637,8 +637,8 @@ function showView(vid){
 
   allMonths=results;
   const multiYear=years.length>1;
-  const now=new Date();
-  const currentKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const currentNow=new Date();
+  const currentKey=`${currentNow.getFullYear()}-${String(currentNow.getMonth()+1).padStart(2,'0')}`;
 
   // Compute best month per year (by total views)
   const bestKeyPerYear={};
