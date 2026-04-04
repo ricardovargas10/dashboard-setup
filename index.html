@@ -27,12 +27,13 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .layout.sidebar-collapsed{grid-template-columns:0px 1fr}
 .sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 0;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;transition:transform .25s ease,width .25s ease;width:220px;z-index:10}
 .layout.sidebar-collapsed .sidebar{transform:translateX(-220px);width:0;border-right:none}
-.sidebar-logo{padding:0 1.25rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sidebar-logo{padding:1rem 1.25rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem}
 .sidebar-logo img{height:28px;width:auto;display:block}
 .logo-fallback{font-size:16px;font-weight:800;color:var(--orange);display:none}
-.hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;border-radius:6px;transition:background .15s}
-.hamburger:hover{background:rgba(255,255,255,.06)}
+.hamburger{position:fixed;top:14px;left:14px;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:8px;width:34px;height:34px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:background .15s,left .25s ease}
+.hamburger:hover{background:var(--surface2)}
 .hamburger span{display:block;width:16px;height:2px;background:var(--muted);border-radius:2px}
+.layout:not(.sidebar-collapsed) .hamburger{left:186px}
 .sidebar-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:0 1.25rem;margin:1rem 0 .4rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
 .sidebar-section:hover{color:var(--beige)}
 .sidebar-section .chevron{font-size:8px;transition:transform .2s;opacity:.5}
@@ -174,15 +175,15 @@ code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-siz
 <body>
 <div id="app-loading"><div class="spinner"></div><p>Carregando dados...</p></div>
 <div id="app">
+  <button class="hamburger" id="hamburger" title="Menu">
+    <span></span><span></span><span></span>
+  </button>
   <div class="layout" id="layout">
     <aside class="sidebar">
       <div class="sidebar-logo">
         <img src="logo.png" alt="SetUp"
           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
         <span class="logo-fallback">SetUp</span>
-        <button class="hamburger" id="hamburger" title="Menu">
-          <span></span><span></span><span></span>
-        </button>
       </div>
       <div class="sidebar-section">Mensal</div>
       <div id="monthNav"></div>
@@ -625,25 +626,74 @@ function showView(vid){
 (async function init(){
   const now=new Date();
   const thisYear=now.getFullYear();
+
+  // Helper: split posts by month from a mixed CSV
+  function splitByMonth(posts){
+    const byKey={};
+    posts.forEach(p=>{
+      const h=p['Horário de publicação']||'';
+      const parts=h.split(' ')[0].split('/');
+      if(parts.length<3)return;
+      const y=parseInt(parts[2]),mo=parseInt(parts[0])-1;
+      const key=`${y}-${String(mo+1).padStart(2,'0')}`;
+      if(!byKey[key])byKey[key]={mi:mo,year:y,key,posts:[]};
+      byKey[key].posts.push(p);
+    });
+    return Object.values(byKey);
+  }
+
+  // 1a. Monthly CSVs: YYYY-MM.csv
   const candidates=[];
   [thisYear-1,thisYear].forEach(y=>{
     for(let i=0;i<12;i++){
       candidates.push({year:y,mi:i,key:`${y}-${String(i+1).padStart(2,'0')}`});
     }
   });
-  
-  // 1. Fetch Posts Data (same as before)
-  const fetches=candidates.map(({year,mi,key})=>{
-    return fetch(`data/${key}.csv`).then(r=>r.ok?r.text():null).catch(()=>null)
+  const monthlyFetches=candidates.map(({year,mi,key})=>
+    fetch(`data/${key}.csv`).then(r=>r.ok?r.text():null).catch(()=>null)
       .then(text=>{
         if(!text)return null;
         const posts=parsePosts(Papa.parse(text,{header:true,skipEmptyLines:true}).data);
         return posts.length?{mi,year,key,posts}:null;
-      });
+      })
+  );
+
+  // 1b. Multi-month CSVs: YYYY-MM-MM.csv (e.g. 2026-01-03.csv = Jan to Mar 2026)
+  const multiCandidates=[];
+  [thisYear-1,thisYear].forEach(y=>{
+    for(let from=1;from<=12;from++){
+      for(let to=from+1;to<=12;to++){
+        multiCandidates.push(`${y}-${String(from).padStart(2,'0')}-${String(to).padStart(2,'0')}`);
+      }
+    }
   });
-  const raw=(await Promise.all(fetches)).filter(Boolean);
+  const multiFetches=multiCandidates.map(key=>
+    fetch(`data/${key}.csv`).then(r=>r.ok?r.text():null).catch(()=>null)
+      .then(text=>{
+        if(!text)return null;
+        const all=parsePosts(Papa.parse(text,{header:true,skipEmptyLines:true}).data);
+        return all.length?splitByMonth(all):null;
+      })
+  );
+
+  const [monthlyRaw,multiRaw]=await Promise.all([
+    Promise.all(monthlyFetches),
+    Promise.all(multiFetches)
+  ]);
+
+  // Merge: monthly CSVs take priority, multi-month fills gaps
   const seen=new Set();
-  const results=raw.filter(m=>{if(seen.has(m.key))return false;seen.add(m.key);return true;});
+  const results=[];
+  // First add monthly
+  monthlyRaw.filter(Boolean).forEach(m=>{
+    if(!seen.has(m.key)){seen.add(m.key);results.push(m);}
+  });
+  // Then add months from multi-month files not already covered
+  multiRaw.filter(Boolean).forEach(months=>{
+    months.forEach(m=>{
+      if(!seen.has(m.key)){seen.add(m.key);results.push(m);}
+    });
+  });
   results.sort((a,b)=>a.key.localeCompare(b.key));
   
   if(!results.length){
