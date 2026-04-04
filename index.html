@@ -91,8 +91,8 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 .top-post-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .15s;text-decoration:none;display:block}
 .top-post-card:hover{border-color:rgba(240,89,36,.4)}
 .top-post-img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--surface2)}
-.top-post-ph{width:100%;aspect-ratio:4/5;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;font-weight:600;flex-direction:column;gap:6px;text-align:center;padding:1rem}
-.top-post-ph-icon{font-size:22px;opacity:.35}
+.top-post-embed{width:100%;aspect-ratio:4/5;overflow:hidden;background:var(--surface2)}
+.top-post-embed iframe{width:100%;height:100%;border:none;display:block}
 .top-post-body{padding:14px 16px}
 .top-post-rank{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--orange);margin-bottom:5px}
 .top-post-desc{font-size:14px;color:var(--dimmed);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:10px}
@@ -241,11 +241,14 @@ const chartOpts=(type='bar')=>({
   scales:{x:{grid:{display:false},ticks:{color:'#7a6e78',font:{size:11,family:"'Bricolage Grotesque',sans-serif"}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#7a6e78',font:{size:11,family:"'Bricolage Grotesque',sans-serif"},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v}}}
 });
 
-function imgBlock(shortcode){
+function imgBlock(shortcode,postUrl){
   if(!shortcode)return`<div class="top-post-ph"><div class="top-post-ph-icon">📷</div><div>Sem imagem</div></div>`;
+  const embedUrl=(postUrl||'').replace(/\/?$/,'/');
   return`<img class="top-post-img" src="posts/${shortcode}.jpg"
-    onerror="this.src='posts/${shortcode}.png';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}" alt="">
-    <div class="top-post-ph" style="display:none"><div class="top-post-ph-icon">📷</div><div>posts/${shortcode}.jpg</div></div>`;
+    onerror="this.src='posts/${shortcode}.png';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='block'}" alt="">
+    <div class="top-post-embed" style="display:none">
+      <iframe src="${embedUrl}embed/" frameborder="0" scrolling="no" allowtransparency="true" loading="lazy"></iframe>
+    </div>`;
 }
 
 function topPostsHtml(top3,label='do mês'){
@@ -257,7 +260,7 @@ function topPostsHtml(top3,label='do mês'){
     const desc=(p['Descrição']||'').split('\n')[0].trim();
     const url=p['Link permanente']||'#';
     return`<a class="top-post-card" href="${url}" target="_blank" rel="noopener">
-      ${imgBlock(code)}
+      ${imgBlock(code,url)}
       <div class="top-post-body">
         <div class="top-post-rank">${['1º','2º','3º'][i]} ${label} · ${fmt(v)} views</div>
         <div class="top-post-dateline">${postDateLine(p['Horário de publicação'])}</div>
@@ -276,7 +279,7 @@ function worstPostsHtml(posts3){
     const desc=(p['Descrição']||'').split('\n')[0].trim();
     const url=p['Link permanente']||'#';
     return`<a class="top-post-card" style="border-color:rgba(240,89,36,.15)" href="${url}" target="_blank" rel="noopener">
-      ${imgBlock(code)}
+      ${imgBlock(code,url)}
       <div class="top-post-body">
         <div class="top-post-rank" style="color:var(--muted)">${['1º','2º','3º'][i]} menor · ${fmt(v)} views</div>
         <div class="top-post-dateline">${postDateLine(p['Horário de publicação'])}</div>
