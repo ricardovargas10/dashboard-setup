@@ -23,24 +23,35 @@ body{background:var(--bg);color:var(--beige);font-family:var(--font);font-size:1
 @keyframes spin{to{transform:rotate(360deg)}}
 #app-loading p{color:var(--muted);font-size:13px}
 #app{display:none}
-.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
-.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 0;position:sticky;top:0;height:100vh;overflow-y:auto}
-.sidebar-logo{padding:0 1.25rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem}
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh;transition:grid-template-columns .25s ease}
+.layout.sidebar-collapsed{grid-template-columns:0px 1fr}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 0;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;transition:transform .25s ease, width .25s ease;width:220px;z-index:10}
+.layout.sidebar-collapsed .sidebar{transform:translateX(-220px);width:0;border-right:none}
+.sidebar-logo{padding:0 1.25rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
 .sidebar-logo img{height:28px;width:auto;display:block}
 .logo-fallback{font-size:16px;font-weight:800;color:var(--orange);display:none}
-.sidebar-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:0 1.25rem;margin:1rem 0 .4rem}
-.nav-tab{display:flex;align-items:center;gap:8px;padding:8px 1.25rem;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:color .15s,background .15s;position:relative;font-family:var(--font)}
+.sidebar-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:0 1.25rem;margin:1rem 0 .4rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+.sidebar-section:hover{color:var(--beige)}
+.sidebar-section .chevron{font-size:8px;transition:transform .2s;opacity:.5}
+.sidebar-section.collapsed .chevron{transform:rotate(-90deg)}
+.year-group{overflow:hidden;transition:max-height .25s ease}
+.year-group.collapsed{max-height:0!important}
+.nav-tab{display:flex;align-items:center;gap:8px;padding:8px 1.25rem;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:color .15s,background .15s;position:relative;font-family:var(--font);white-space:nowrap}
 .nav-tab:hover{color:var(--beige);background:rgba(255,255,255,.03)}
 .nav-tab.active{color:var(--beige);background:rgba(240,89,36,.08)}
 .nav-tab.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--orange);border-radius:0 2px 2px 0}
 .nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .sidebar-footer{margin-top:auto;padding:1.25rem;border-top:1px solid var(--border)}
+.hamburger{position:fixed;top:1rem;left:1rem;z-index:100;background:var(--surface);border:1px solid var(--border);border-radius:8px;width:36px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:background .15s;padding:0}
+.hamburger:hover{background:var(--surface2)}
+.hamburger span{display:block;width:16px;height:2px;background:var(--beige);border-radius:2px;transition:transform .2s, opacity .2s}
+.layout.sidebar-collapsed .hamburger{left:1rem}
 .temeron-badge{display:flex;align-items:center;gap:10px}
 .temeron-t{width:28px;height:28px;background:var(--orange);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;flex-shrink:0}
 .temeron-logo{height:22px;width:auto;display:block}
 .temeron-name{font-size:13px;font-weight:700;color:var(--beige)}
 .temeron-rights{font-size:11px;color:var(--muted);margin-top:1px}
-.main{padding:2rem;overflow-x:hidden}
+.main{padding:2rem;padding-top:3.5rem;overflow-x:hidden}
 .view{display:none}
 .view.active{display:block}
 .page-header{margin-bottom:1.75rem;padding-bottom:1.75rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem}
@@ -152,7 +163,10 @@ code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-siz
 <body>
 <div id="app-loading"><div class="spinner"></div><p>Carregando dados...</p></div>
 <div id="app">
-  <div class="layout">
+  <button class="hamburger" id="hamburger" title="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="layout" id="layout">
     <aside class="sidebar">
       <div class="sidebar-logo">
         <img src="logo.png" alt="SetUp"
@@ -623,16 +637,58 @@ function showView(vid){
 
   allMonths=results;
   const multiYear=years.length>1;
+  const now=new Date();
+  const currentKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // Compute best month per year (by total views)
+  const bestKeyPerYear={};
+  years.forEach(y=>{
+    const yMonths=results.filter(m=>m.year===y);
+    const best=yMonths.reduce((a,b)=>sum(b.posts,'Visualizações')>sum(a.posts,'Visualizações')?b:a,yMonths[0]);
+    if(best)bestKeyPerYear[y]=best.key;
+  });
+
+  function dotColorForMonth(key){
+    const isCurrent=key===currentKey;
+    const year=parseInt(key.split('-')[0]);
+    const isBest=bestKeyPerYear[year]===key;
+    if(isBest) return'var(--orange)';           // best month → orange (wins over current)
+    if(isCurrent) return'var(--blue)';           // current month → blue
+    return'rgba(255,255,255,.2)';               // all others → gray
+  }
+
   const nav=document.getElementById('monthNav');
   years.forEach(y=>{
-    const yDiv=document.createElement('div');yDiv.className='sidebar-section';yDiv.textContent=String(y);nav.appendChild(yDiv);
+    // Year label (collapsible)
+    const yDiv=document.createElement('div');
+    yDiv.className='sidebar-section';
+    yDiv.innerHTML=`${y} <span class="chevron">▼</span>`;
+    nav.appendChild(yDiv);
+
+    // Month buttons container
+    const group=document.createElement('div');
+    group.className='year-group';
     results.filter(m=>m.year===y).forEach(m=>{
-      const btn=document.createElement('button');btn.className='nav-tab';btn.dataset.view=`view-${m.key}`;
-      btn.innerHTML=`<span class="nav-dot" style="background:${bColor(m.posts[0]?.['Tipo de post']||'')}"></span>${MO[m.mi]}`;
-      btn.onclick=()=>showView(`view-${m.key}`);nav.appendChild(btn);
+      const btn=document.createElement('button');
+      btn.className='nav-tab';btn.dataset.view=`view-${m.key}`;
+      btn.innerHTML=`<span class="nav-dot" style="background:${dotColorForMonth(m.key)}"></span>${MO[m.mi]}`;
+      btn.onclick=()=>showView(`view-${m.key}`);
+      group.appendChild(btn);
+    });
+    nav.appendChild(group);
+
+    // Set max-height for animation
+    group.style.maxHeight=group.scrollHeight+'px';
+
+    // Toggle collapse on year click
+    yDiv.addEventListener('click',()=>{
+      const collapsed=group.classList.toggle('collapsed');
+      yDiv.classList.toggle('collapsed',collapsed);
+      if(!collapsed) group.style.maxHeight=group.scrollHeight+'px';
     });
   });
-  
+
+  // Geral section + annual buttons
   const geralSection=document.createElement('div');geralSection.className='sidebar-section';geralSection.textContent='Geral';
   document.querySelector('.sidebar').insertBefore(geralSection,document.getElementById('btn-annual'));
   years.forEach(y=>{
@@ -642,6 +698,12 @@ function showView(vid){
     document.querySelector('.sidebar').insertBefore(btn,document.getElementById('btn-annual'));
   });
   document.getElementById('btn-annual').style.display='none';
+
+  // Hamburger toggle
+  const layout=document.getElementById('layout');
+  document.getElementById('hamburger').addEventListener('click',()=>{
+    layout.classList.toggle('sidebar-collapsed');
+  });
   window.acctMap = acctMap;
   let html='';
   results.forEach(m=>{const b=buildMonth(m.mi,m.posts,m.key,m.year,multiYear,acctMap[m.key]||null);html+=b.html;chronoMap[m.key]=b.chrono;});
